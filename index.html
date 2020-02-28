@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WS TLS Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <style type="text/css">
+        #state {padding: 10px; font-size: 25px;}
+        #TypeMsg {margin-top: 10px; width: 300px;}
+        .green {background-color: #bada55; color: #fff;}
+        .red {background-color: #f00; color: #fff;}
+        .grey {background-color: #ccc; color: #000;}
+    </style>
+</head>
+<body>
+    <div id="app">
+        <p>Be Happy :)  See the console log</p><br>
+        <p id="state" v-bind:class="{ 'grey': state == 0, 'green': state == 1, 'red': state == 3 }"><strong>Websocket State: </strong>{{stateDesc}} ({{state}})</p>
+        <div id="messages">
+            <div v-for="m in msgs" class="message"><strong>{{m.from}}: </strong>{{m.body}}</div>
+        </div>
+        <input type="text" placeholder="Type a message" id="TypeMsg" spellcheck="true" @keyup.enter="send(newMsg)" v-model.trim="newMsg" maxlength="153" autocomplete="off" />
+    </div>
+<script>
+console.clear();
+
+new Vue({
+  el: "#app",
+  data: {
+    // Some globals ususally from session. PS is session ID
+    GVARS: { "NF": "Foo", "NL": "Bar", "UID": "12345", "UOS": "acme",
+        "WSP": 11112,
+        "DOMAIN": "localhost",
+        "MODE": "Private", "PS": Math.random() },
+    msgs: [], // all messages
+    ws: null, // Our websocket
+    state: 0, // Our websocket state code
+    stateDesc: 'Connecting...', // Our websocket state description
+    newMsg: '', // Holds new message to be sent to the server (input form field)
+  },
+                                            
+    // run on start
+    created: function() {
+        var self = this;
+        // self.GVARS = {};
+
+        // Connect to WS
+        self.WSCONNECT();
+    },
+
+    methods: {
+        WSCONNECT() {
+            var self = this;
+
+            console.log('Trying websocket connect...');
+
+            // Connect to WebSocket
+            // GVARS.PS is the session ID
+
+            // TLS
+            // let url = 'ws://' + self.GVARS.DOMAIN + ':' + self.GVARS.WSP+'/'
+            let url = 'wss://happy.chatfully.io:' + self.GVARS.WSP + "/ws/"+self.GVARS.PS;
+
+            // HTTP
+            // let url = 'ws://' + self.GVARS.DOMAIN + ':' + self.GVARS.WSP + '/' + self.GVARS.PS;
+
+            console.log(url);
+
+            self.ws = new WebSocket(url);
+
+            // On WebSocket Connect
+            self.ws.onopen = function() {
+                self.stateDesc = "Connected";
+                self.state = self.ws.readyState;
+                console.log('\n%c WebSocket connected: ' + self.ws.readyState, 'background: #bada55; color: #fff; font-size: 25px; font-weight: bold');
+
+                // Send a request to server
+                self.send("Hello from browser!");
+                // self.send('{"r":"ch","ds":1}');
+            };
+
+            // On WebSocket Disconnect
+            self.ws.onclose = function(msg) {
+                self.stateDesc = "Disconnected";
+                self.state = self.ws.readyState;
+                console.log('\n%c WebSocket disconnected: ' + msg + ' ', 'background: #f00; color: #fff; font-size: 25px; font-weight: bold');
+            };
+
+            // On message received from server
+            self.ws.onmessage = function(e) {
+                // Log raw data
+                // console.log("-----------------  BEGIN RAW  -----------------\n" + e.data + "\n-----------------  END RAW  -----------------\n\n");
+
+                self.received(e.data);
+
+                // Parse JSON data
+                // var glob = JSON.parse(e.data);
+                // console.log('\n%c ' + glob.r + ' ', 'background: #222; color: #bada55; font-size: 16px; font-weight: bold');
+            };
+
+            // On WebSocket Error
+            self.ws.onerror = function(msg) { // optional
+                self.stateDesc = "Error";
+                self.state = self.ws.readyState;
+                console.log('WebSocket ERROR: ' + msg);
+            };
+
+        },
+
+        send(msg) {
+            var self = this;
+            self.newMsg = '';
+            self.msgs.push({"from":"Client","body":msg});
+            self.ws.send(msg);
+            console.log('Sent: ' + msg);
+        },
+        received(msg) {
+            var self = this;
+            console.log('Received: ' + msg);
+            self.msgs.push({"from":"Server","body":msg});
+            
+        },
+    }
+});
+
+</script>
+
+</body>
+</html>
