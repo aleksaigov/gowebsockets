@@ -10,9 +10,6 @@ that allows to reuse the allocated buffers between connections
 
 set path to keys in environment variables, e.g.:
 
-export CERT_FILE=/etc/letsencrypt/live/happy.chatfully.io/fullchain.pem
-
-export KEY_FILE=/etc/letsencrypt/live/happy.chatfully.io/privkey.pem
 
 then build:
 _make_
